@@ -6,9 +6,9 @@
 #          Assignment #5
 
 #       Project #6 Group #4
-#         Haden
+#            Haden
 #            Phillip
-#            Sabari
+#            Sabari (Teamlead)
 #
 # /blueooth_teleop/joy
 # sensor_msgs/Joy
@@ -29,8 +29,7 @@ import roslaunch
 import sys
 import time
 import os
-import wall_avoid
-import jackal_move
+import objtrack
 from sensor_msgs.msg import Joy
 
 class joy_control(object):
@@ -40,8 +39,9 @@ class joy_control(object):
         rate = rospy.Rate(5)
         rospy.Subscriber("/bluetooth_teleop/joy", Joy, self.joy_callback)
 
-        self.x, self.circ = 0
-        self.sq, self.tri, self.L1, self.R1, self.share, self.options, self.p4, self.L3, self.R3, self.DL, self.DR, self.DU, self.DD = 0
+        self.x = 0
+        self.circ = 0
+        self.sq = self.tri = self.L1 = self.R1 = self.share = self.options = self.p4 = self.L3 = self.R3 = self.DL = self.DR = self.DU = self.DD = 0
         #self.llr, self.lud, self.L2, self.rlr, self.rud, self.R2 = 0
 
         self.active = False
@@ -57,12 +57,12 @@ class joy_control(object):
             if self.active == False:
 
                 # Start Object Tracking
-                if (self.x == 1):
+                if (self.circ == 1):
                     rospy.loginfo("Joystick code received, commencing object tracking protocol...")
                     self.active = True
                     # run = wall_avoid.WallAvoid(runtime)
                     package = 'obj_track'
-                    executable = 'obj_track.py' # NEED TO UPDATE ACTUAL SCRIPT NAME
+                    executable = 'objtrack.py' # NEED TO UPDATE ACTUAL SCRIPT NAME
 
                     node = roslaunch.core.Node(package, executable)
                     launch = roslaunch.scriptapi.ROSLaunch()
@@ -71,7 +71,7 @@ class joy_control(object):
             else:
 
                 # Stop Object Tracking
-                if (self.circ == 1):
+                if (self.x == 1):
                     rospy.loginfo("Joystick code recieved, terminating object tracking protocol")
                     self.active = False
                     objtrack_process.stop()
