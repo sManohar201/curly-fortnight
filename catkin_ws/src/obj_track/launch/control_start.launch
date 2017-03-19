@@ -1,0 +1,6 @@
+<launch>
+  <include file="$(find building_mapper)/launch/jackal.launch" />
+  <!-- Start Joystick control start -->
+  <node pkg="obj_track" name="joystick_start"  type="joystick_start.py" output="screen" required="true" />
+
+</launch>
