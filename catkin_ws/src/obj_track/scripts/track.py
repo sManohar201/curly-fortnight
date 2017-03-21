@@ -96,7 +96,7 @@ class Tracker:
 
         if len(contours) > 0:
             biggest_shape = None
-            largest_area = 20.0
+            largest_area = 250.0
             for contour in contours:
                 area = cv2.contourArea(contour)
                 if area > largest_area:
