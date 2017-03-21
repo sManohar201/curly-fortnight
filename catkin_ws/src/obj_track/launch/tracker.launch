@@ -1,0 +1,4 @@
+<launch>
+  <!-- Start tracker -->
+  <node pkg="obj_track" name="track"  type="track.py" output="screen" required="true" />
+</launch>

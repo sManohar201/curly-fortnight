@@ -1,7 +1,12 @@
 #!/usr/bin/env python
+import rospy
+from sensor_msgs.msg import Image
 import cv2
-import sys
+import cv_bridge
 import numpy as np
+from collections import deque
+import argparse
+import sys
 
 
 kernel_size = 5
@@ -21,10 +26,15 @@ averageX = 0.5
 
 inside_box = False
 
-cap = cv2.VideoCapture(1)
+class Tracker:
+    def __init__(self):
+        self.bridge = cv_bridge.CvBridge()
+        cv2.namedWindow("input", 1)
+        cv2.namedWindow("processed", 1)
+        self.image_sb = rospy.Subscriber('/usb_cam/image_raw', Image, self.image_callback)
 
-while True:
-        ret, img = cap.read()
+    def image_callback(self, msg):
+        img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         height, width, channels = img.shape
         proc = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         proc = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
@@ -36,7 +46,8 @@ while True:
         edge = cv2.Canny(proc, low_threshold, high_threshold)
         contours = cv2.findContours(edge.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[1]
 
-        if len(contours) > 0:
+        if contours is not None:
+        # len(contours) > 0:
             biggest_shape = None
             most_edges = 20
             for contour in contours:
@@ -46,12 +57,14 @@ while True:
 
             if biggest_shape is not None:
                 # compute the center of the contour
-                M = cv2.moments(biggest_shape[0])
-                if M["m00"] < 0.0001:
-                    break
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
+                #M = cv2.moments(biggest_shape[0])
+                #if M["m00"] > 0.0001:
+                #cX = int(M["m10"] / M["m00"])
+                #cY = int(M["m01"] / M["m00"])
+                cX = int(width / 2.0)
+                cY = int(height / 2.0)
                 relativeX = float(cX) / width
+                global averageX
                 averageX = 0.8 * averageX + 0.2 * relativeX
                 print(relativeX)
                 print(averageX)
@@ -93,12 +106,11 @@ while True:
                     thickness = int(np.sqrt(float(i + 1) / 1.0) * 2.5)
                     cv2.line(proc, pts[i - 1], pts[i], (0, 0, 255), thickness)
 
-            cv2.imshow("input", img)
-            cv2.imshow("processed", proc)
-            cv2.moveWindow("processed", 850, 0)
+        cv2.imshow("input", img)
+        cv2.imshow("processed", proc)
+        cv2.moveWindow("processed", 850, 0)
+        cv2.waitKey(3)
 
-        key = cv2.waitKey(10)
-        if key == 27:
-            break
-cv2.destroyAllWindows()
-cv2.VideoCapture(0).release()
+rospy.init_node('tracker')
+tracker_proto = Tracker()
+rospy.spin()
