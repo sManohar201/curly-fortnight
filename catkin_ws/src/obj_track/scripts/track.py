@@ -125,8 +125,6 @@ class Tracker:
 
                 average_distance = average_distance * 0.7 + distance * 0.3
 
-                cv2.circle(proc, center, radius, (0, 255, 0), 2)
-
                 pts.append((int(average_x * width), center_y))
                 if len(pts) > 20:
                     pts.pop(0)
@@ -175,10 +173,6 @@ class Tracker:
                 else:
                     cv2.rectangle(proc, (int(width * 0.55), 0), (int(width * 0.45), height), (0, 0, 255), 3)
 
-                cv2.circle(proc, (center_x, center_y), 7, (255, 255, 255), -1)
-                cv2.circle(proc, (int(average_x * width), center_y), 7, (0, 255, 0), -1)
-                cv2.putText(proc, "center", (center_x - 20, center_y - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-
                 # loop over the set of tracked points
                 for i in xrange(1, len(pts)):
                     # if either of the tracked points are None, ignore them
@@ -189,6 +183,11 @@ class Tracker:
                     # draw the connecting lines
                     thickness = int(np.sqrt(float(i + 1) / 1.0) * 2.5)
                     cv2.line(proc, pts[i - 1], pts[i], (0, 0, 255), thickness)
+
+                cv2.circle(proc, center, radius, (0, 255, 0), 2)
+                cv2.circle(proc, (center_x, center_y), 7, (255, 255, 255), -1)
+                cv2.circle(proc, (int(average_x * width), center_y), 7, (0, 255, 0), -1)
+                cv2.putText(proc, "center", (center_x - 20, center_y - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
         else:
             slow_to_stop()
 
