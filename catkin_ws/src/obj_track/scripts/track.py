@@ -7,13 +7,14 @@ import numpy as np
 from collections import deque
 import argparse
 import sys
+from geometry_msgs.msg import Twist
 
 
 kernel_size = 5
 low_threshold = 80
 high_threshold = 120
 # define range of blue color in HSV
-lower_color = np.array([100, 100, 150])
+lower_color = np.array([100, 100, 100])
 high_color = np.array([155, 255, 255])
 
 # Used to erode image
@@ -33,6 +34,19 @@ class Tracker:
         cv2.namedWindow("processed", 1)
         self.image_sb = rospy.Subscriber('/usb_cam/image_raw', Image, self.image_callback)
 
+        self.motion = Twist()
+
+        rate = rospy.Rate(20)
+
+        # publish to cmd_vel of the jackal
+        pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
+
+        while not rospy.is_shutdown():
+            # publish Twist
+            pub.publish(self.motion)
+
+            rate.sleep()
+
     def image_callback(self, msg):
         img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         height, width, channels = img.shape
@@ -45,6 +59,9 @@ class Tracker:
         proc = cv2.dilate(proc, kernel, 10)
         edge = cv2.Canny(proc, low_threshold, high_threshold)
         contours = cv2.findContours(edge.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+
+        speed = 0.0
+        rotation = 0.0
 
         if len(contours) > 0:
             biggest_shape = contours[0]
@@ -64,6 +81,9 @@ class Tracker:
             (x, y), radius = cv2.minEnclosingCircle(biggest_shape)
             center = (int(x), int(y))
             radius = int(radius)
+
+            distance = 36.0 / radius
+            print('{} m\t{} pixels'.format(distance, radius))
             cv2.circle(proc, center, radius, (0, 255, 0), 2)
 
             global averageX
@@ -80,9 +100,15 @@ class Tracker:
             if inside_box:
                 if averageX > 0.6 or averageX < 0.4:
                     inside_box = False
+                    rotation = (averageX - 0.5) * 0.1
+                else:
+                    rotation = 0.0
             else:
                 if averageX < 0.55 and averageX > 0.45:
                     inside_box = True
+                    rotation = 0.0
+                else:
+                    rotation = (averageX - 0.5) * 0.1
             if inside_box:
                 cv2.rectangle(proc, (int(width * 0.6), 0), (int(width * 0.4), height), (0, 255, 0), 3)
             else:
@@ -104,7 +130,13 @@ class Tracker:
                 cv2.line(proc, pts[i - 1], pts[i], (0, 0, 255), thickness)
         else:
             # Nothing found, sit still
+            speed = 0.0
+            rotation = 0.0
             pass
+
+         # move forward
+        self.motion.linear.x  = speed
+        self.motion.angular.z = rotation
 
         cv2.imshow("input", img)
         cv2.imshow("processed", proc)
