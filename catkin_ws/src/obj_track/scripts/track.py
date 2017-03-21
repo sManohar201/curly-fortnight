@@ -14,11 +14,11 @@ kernel_size = 5
 low_threshold = 80
 high_threshold = 120
 # define range of blue color in HSV
-lower_color = np.array([100, 100, 100])
+lower_color = np.array([100, 150, 75])
 high_color = np.array([155, 255, 255])
 
 # Used to erode image
-kernel = np.ones((5, 5), np.uint8)
+kernel = np.ones((10, 10), np.uint8)
 
 # Trail behind object
 pts = []
