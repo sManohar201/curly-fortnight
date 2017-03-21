@@ -100,7 +100,7 @@ class Tracker:
             if inside_box:
                 if averageX > 0.6 or averageX < 0.4:
                     inside_box = False
-                    rotation = (averageX - 0.5) * 0.1
+                    rotation = (0.5 - averageX)
                 else:
                     rotation = 0.0
             else:
@@ -108,7 +108,7 @@ class Tracker:
                     inside_box = True
                     rotation = 0.0
                 else:
-                    rotation = (averageX - 0.5) * 0.1
+                    rotation = (0.5 - averageX)
             if inside_box:
                 cv2.rectangle(proc, (int(width * 0.6), 0), (int(width * 0.4), height), (0, 255, 0), 3)
             else:
