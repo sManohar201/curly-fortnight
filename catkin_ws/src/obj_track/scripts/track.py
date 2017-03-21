@@ -127,7 +127,7 @@ class Tracker:
 
                 cv2.circle(proc, center, radius, (0, 255, 0), 2)
 
-                pts.append((center_x, center_y))
+                pts.append((int(average_x * width), center_y))
                 if len(pts) > 20:
                     pts.pop(0)
 
