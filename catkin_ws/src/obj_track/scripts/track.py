@@ -31,6 +31,11 @@ distance_box = False
 
 goal_distance = 1.0
 
+relative_x = 0.5
+distance = goal_distance
+speed = 0.0
+rotation = 0.0
+
 class Tracker:
     def __init__(self):
         self.bridge = cv_bridge.CvBridge()
@@ -51,6 +56,23 @@ class Tracker:
 
             rate.sleep()
 
+    def slow_to_stop():
+        # Nothing found, slow to a stop
+        global average_x
+        global average_distance
+        global goal_distance
+        global relative_x
+        global distance
+        global speed
+        global rotation
+
+        relative_x = 0.5
+        average_x = average_x * 0.7 + relative_x * 0.3
+        distance = goal_distance
+        average_distance = average_distance * 0.7 + distance * 0.3
+        speed = (average_distance - goal_distance)
+        rotation = (0.5 - average_x) * 3.0
+
     def image_callback(self, msg):
         img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         height, width, channels = img.shape
@@ -64,17 +86,23 @@ class Tracker:
         edge = cv2.Canny(proc, low_threshold, high_threshold)
         contours = cv2.findContours(edge.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
 
-        speed = 0.0
-        rotation = 0.0
+        global relative_x
+        global distance
+        global speed = 0.0
+        global rotation = 0.0
 
         if len(contours) > 0:
-            biggest_shape = contours[0]
+            biggest_shape = None
             largest_area = 0.0
             for contour in contours:
                 area = cv2.contourArea(contour)
                 if area > largest_area:
                     largest_area = area
                     biggest_shape = contour
+
+            if biggest_shape is None:
+                slow_to_stop()
+                break
 
             # compute the center of the contour
             M = cv2.moments(biggest_shape)
@@ -118,27 +146,27 @@ class Tracker:
                     rotation = (0.5 - average_x) * 3.0
 
             if distance_box:
-                if average_distance > goal_distance + 0.4 or average_distance < goal_distance - 0.4:
+                if average_distance > goal_distance + 0.2 or average_distance < goal_distance - 0.2:
                     distance_box = False
-                    speed = (average_distance - goal_distance)
+                    speed = (average_distance - goal_distance) * 0.5
                 else:
                     speed = 0.0
             else:
-                if average_distance < goal_distance + 0.2 and average_distance > goal_distance - 0.2:
+                if average_distance < goal_distance + 0.1 and average_distance > goal_distance - 0.1:
                     distance_box = True
                     speed = 0.0
                 else:
-                    speed = (average_distance - goal_distance)
+                    speed = (average_distance - goal_distance) * 0.5
 
-            if speed > 1.0:
-                speed = 1.0
-            elif speed < -1.0:
-                speed = -1.0
+            if speed > 0.75:
+                speed = 0.75
+            elif speed < -0.75:
+                speed = -0.75
 
-            if rotation > 1.0:
-                rotation = 1.0
-            elif rotation < -1.0:
-                rotation = -1.0
+            if rotation > 0.75:
+                rotation = 0.75
+            elif rotation < -0.75:
+                rotation = -0.75
 
             if inside_box:
                 cv2.rectangle(proc, (int(width * 0.6), 0), (int(width * 0.4), height), (0, 255, 0), 3)
@@ -160,13 +188,7 @@ class Tracker:
                 thickness = int(np.sqrt(float(i + 1) / 1.0) * 2.5)
                 cv2.line(proc, pts[i - 1], pts[i], (0, 0, 255), thickness)
         else:
-            # Nothing found, slow to a stop
-            relative_x = 0.5
-            average_x = average_x * 0.7 + relative_x * 0.3
-            distance = goal_distance
-            average_distance = average_distance * 0.7 + distance * 0.3
-            speed = (average_distance - goal_distance)
-            rotation = (0.5 - average_x) * 3.0
+            slow_to_stop()
 
         print("speed = {}\trotation = {}\taverage distance = {}".format(speed, rotation, average_distance))
 
