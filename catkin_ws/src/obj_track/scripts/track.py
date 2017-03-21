@@ -105,91 +105,90 @@ class Tracker:
 
             if biggest_shape is None:
                 slow_to_stop()
-                break
-
-            # compute the center of the contour
-            M = cv2.moments(biggest_shape)
-            center_x = int(M["m10"] / M["m00"])
-            center_y = int(M["m01"] / M["m00"])
-            # draw the contour and center of the shape on the image
-            (x, y), radius = cv2.minEnclosingCircle(biggest_shape)
-            center = (int(x), int(y))
-            radius = int(radius)
-
-            global average_x
-            global average_distance
-
-            distance = 36.0 / radius
-
-            relative_x = float(center_x) / width
-            average_x = average_x * 0.7 + relative_x * 0.3
-
-            average_distance = average_distance * 0.7 + distance * 0.3
-
-            cv2.circle(proc, center, radius, (0, 255, 0), 2)
-
-            pts.append((center_x, center_y))
-            if len(pts) > 20:
-                pts.pop(0)
-
-            global inside_box
-            global distance_box
-
-            if inside_box:
-                if average_x > 0.6 or average_x < 0.4:
-                    inside_box = False
-                    rotation = (0.5 - average_x) * 3.0
-                else:
-                    rotation = 0.0
             else:
-                if average_x < 0.55 and average_x > 0.45:
-                    inside_box = True
-                    rotation = 0.0
+                # compute the center of the contour
+                M = cv2.moments(biggest_shape)
+                center_x = int(M["m10"] / M["m00"])
+                center_y = int(M["m01"] / M["m00"])
+                # draw the contour and center of the shape on the image
+                (x, y), radius = cv2.minEnclosingCircle(biggest_shape)
+                center = (int(x), int(y))
+                radius = int(radius)
+
+                global average_x
+                global average_distance
+
+                distance = 36.0 / radius
+
+                relative_x = float(center_x) / width
+                average_x = average_x * 0.7 + relative_x * 0.3
+
+                average_distance = average_distance * 0.7 + distance * 0.3
+
+                cv2.circle(proc, center, radius, (0, 255, 0), 2)
+
+                pts.append((center_x, center_y))
+                if len(pts) > 20:
+                    pts.pop(0)
+
+                global inside_box
+                global distance_box
+
+                if inside_box:
+                    if average_x > 0.6 or average_x < 0.4:
+                        inside_box = False
+                        rotation = (0.5 - average_x) * 3.0
+                    else:
+                        rotation = 0.0
                 else:
-                    rotation = (0.5 - average_x) * 3.0
+                    if average_x < 0.55 and average_x > 0.45:
+                        inside_box = True
+                        rotation = 0.0
+                    else:
+                        rotation = (0.5 - average_x) * 3.0
 
-            if distance_box:
-                if average_distance > goal_distance + 0.2 or average_distance < goal_distance - 0.2:
-                    distance_box = False
-                    speed = (average_distance - goal_distance) * 0.5
+                if distance_box:
+                    if average_distance > goal_distance + 0.2 or average_distance < goal_distance - 0.2:
+                        distance_box = False
+                        speed = (average_distance - goal_distance) * 0.5
+                    else:
+                        speed = 0.0
                 else:
-                    speed = 0.0
-            else:
-                if average_distance < goal_distance + 0.1 and average_distance > goal_distance - 0.1:
-                    distance_box = True
-                    speed = 0.0
+                    if average_distance < goal_distance + 0.1 and average_distance > goal_distance - 0.1:
+                        distance_box = True
+                        speed = 0.0
+                    else:
+                        speed = (average_distance - goal_distance) * 0.5
+
+                if speed > 0.75:
+                    speed = 0.75
+                elif speed < -0.75:
+                    speed = -0.75
+
+                if rotation > 0.75:
+                    rotation = 0.75
+                elif rotation < -0.75:
+                    rotation = -0.75
+
+                if inside_box:
+                    cv2.rectangle(proc, (int(width * 0.6), 0), (int(width * 0.4), height), (0, 255, 0), 3)
                 else:
-                    speed = (average_distance - goal_distance) * 0.5
+                    cv2.rectangle(proc, (int(width * 0.55), 0), (int(width * 0.45), height), (0, 0, 255), 3)
 
-            if speed > 0.75:
-                speed = 0.75
-            elif speed < -0.75:
-                speed = -0.75
+                cv2.circle(proc, (center_x, center_y), 7, (255, 255, 255), -1)
+                cv2.circle(proc, (int(average_x * width), center_y), 7, (0, 255, 0), -1)
+                cv2.putText(proc, "center", (center_x - 20, center_y - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
-            if rotation > 0.75:
-                rotation = 0.75
-            elif rotation < -0.75:
-                rotation = -0.75
+                # loop over the set of tracked points
+                for i in xrange(1, len(pts)):
+                    # if either of the tracked points are None, ignore them
+                    if pts[i - 1] is None or pts[i] is None:
+                        continue
 
-            if inside_box:
-                cv2.rectangle(proc, (int(width * 0.6), 0), (int(width * 0.4), height), (0, 255, 0), 3)
-            else:
-                cv2.rectangle(proc, (int(width * 0.55), 0), (int(width * 0.45), height), (0, 0, 255), 3)
-
-            cv2.circle(proc, (center_x, center_y), 7, (255, 255, 255), -1)
-            cv2.circle(proc, (int(average_x * width), center_y), 7, (0, 255, 0), -1)
-            cv2.putText(proc, "center", (center_x - 20, center_y - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-
-            # loop over the set of tracked points
-            for i in xrange(1, len(pts)):
-                # if either of the tracked points are None, ignore them
-                if pts[i - 1] is None or pts[i] is None:
-                    continue
-
-                # otherwise, compute the thickness of the line and
-                # draw the connecting lines
-                thickness = int(np.sqrt(float(i + 1) / 1.0) * 2.5)
-                cv2.line(proc, pts[i - 1], pts[i], (0, 0, 255), thickness)
+                    # otherwise, compute the thickness of the line and
+                    # draw the connecting lines
+                    thickness = int(np.sqrt(float(i + 1) / 1.0) * 2.5)
+                    cv2.line(proc, pts[i - 1], pts[i], (0, 0, 255), thickness)
         else:
             slow_to_stop()
 
