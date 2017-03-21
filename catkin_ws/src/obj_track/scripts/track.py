@@ -56,7 +56,7 @@ class Tracker:
 
             rate.sleep()
 
-    def slow_to_stop():
+    def slow_to_stop(self):
         # Nothing found, slow to a stop
         global average_x
         global average_distance
@@ -104,7 +104,7 @@ class Tracker:
                     biggest_shape = contour
 
             if biggest_shape is None:
-                slow_to_stop()
+                self.slow_to_stop()
             else:
                 # compute the center of the contour
                 M = cv2.moments(biggest_shape)
@@ -189,7 +189,7 @@ class Tracker:
                 cv2.circle(proc, (int(average_x * width), center_y), 7, (0, 255, 0), -1)
                 cv2.putText(proc, "center", (center_x - 20, center_y - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
         else:
-            slow_to_stop()
+            self.slow_to_stop()
 
         print("speed = {}\trotation = {}\taverage distance = {}".format(speed, rotation, average_distance))
 
