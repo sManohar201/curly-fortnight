@@ -88,8 +88,11 @@ class Tracker:
 
         global relative_x
         global distance
-        global speed = 0.0
-        global rotation = 0.0
+        global speed
+        global rotation
+
+        speed = 0.0
+        rotation = 0.0
 
         if len(contours) > 0:
             biggest_shape = None
