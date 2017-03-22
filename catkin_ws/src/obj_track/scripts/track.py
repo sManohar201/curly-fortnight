@@ -221,8 +221,8 @@ class Tracker:
         global previous_speed
         global previous_rotation
 
-        acceleration_limit = 0.02
-        rotation_limit = 0.02
+        acceleration_limit = 0.04
+        rotation_limit = 0.06
 
         if speed > previous_speed + acceleration_limit:
             speed = previous_speed + acceleration_limit
