@@ -78,7 +78,7 @@ class Tracker:
         relative_x = 0.5
         average_x = average_x * 0.8 + relative_x * 0.2
         distance = goal_distance
-        average_distance = average_distance * 0.9 + distance * 0.1
+        average_distance = average_distance * 0.8 + distance * 0.2
         speed = (average_distance - goal_distance)
         rotation = (0.5 - average_x) * 3.0
 
@@ -140,7 +140,7 @@ class Tracker:
             relative_x = float(center_x) / width
             average_x = average_x * 0.3 + relative_x * 0.7
 
-            average_distance = average_distance * 0.8 + distance * 0.2
+            average_distance = average_distance * 0.7 + distance * 0.3
 
             global distance_set
 
@@ -159,7 +159,7 @@ class Tracker:
                 if inside_box:
                     if average_x > 0.6 or average_x < 0.4:
                         inside_box = False
-                        rotation = (0.5 - average_x) * 1.5
+                        rotation = (0.5 - average_x) * 2.0
                     else:
                         rotation = 0.0
                 else:
@@ -167,12 +167,12 @@ class Tracker:
                         inside_box = True
                         rotation = 0.0
                     else:
-                        rotation = (0.5 - average_x) * 1.5
+                        rotation = (0.5 - average_x) * 2.0
 
                 if distance_box:
                     if average_distance > goal_distance + 0.2 or average_distance < goal_distance - 0.2:
                         distance_box = False
-                        speed = (average_distance - goal_distance) * 0.25
+                        speed = (average_distance - goal_distance) * 0.4
                     else:
                         speed = 0.0
                 else:
@@ -180,7 +180,7 @@ class Tracker:
                         distance_box = True
                         speed = 0.0
                     else:
-                        speed = (average_distance - goal_distance) * 0.25
+                        speed = (average_distance - goal_distance) * 0.4
 
                 if speed > 0.75:
                     speed = 0.75
