@@ -14,9 +14,10 @@ kernel_size = 3
 low_threshold = 80
 high_threshold = 120
 # define range of blue color in HSV
+# lower_color = np.array([75, 25, 50])
+# high_color = np.array([100, 255, 255])
 lower_color = np.array([75, 25, 50])
 high_color = np.array([100, 255, 255])
-
 # Used to erode image
 kernel = np.ones((7, 7), np.uint8)
 

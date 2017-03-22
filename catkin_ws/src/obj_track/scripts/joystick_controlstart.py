@@ -29,7 +29,7 @@ import roslaunch
 import sys
 import time
 import os
-import objtrack
+# import track
 from sensor_msgs.msg import Joy
 
 class joy_control(object):
@@ -59,14 +59,13 @@ class joy_control(object):
                     self.active = True
 
                     package = 'obj_track'
-                    executable = 'track.py' # NEED TO UPDATE ACTUAL SCRIPT NAME
+                    executable = 'track.py'
                     node = roslaunch.core.Node(package, executable)
                     launch = roslaunch.scriptapi.ROSLaunch()
                     launch.start()
                     objtrack_process = launch.launch(node)
             # If object tracking process is active
             else:
-
                 # Stop Object Tracking if x button pressed
                 if (self.x == 1):
                     rospy.loginfo("Joystick code recieved, terminating object tracking protocol")
@@ -78,14 +77,13 @@ class joy_control(object):
 
     # callback function maps button data observed from joystick topic
     def joy_callback(self, data):
-
         self.x, self.circ, self.sq, self.tri, self.L1, self.R1, self.share, self.options, self.p4, self.L3, self.R3, self.DL, self.DR, self.DU, self.DD = data.buttons
 
 
 if __name__ == "__main__":
 
     try:
-        rospy.init_node("joy_start", anonymous=False)
+        rospy.init_node("joy_controlstart", anonymous=False)
         run = joy_control()  #read in joystick input
     except rospy.ROSInterruptException:
         rospy.loginfo("joy_start node terminated.")
