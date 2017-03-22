@@ -36,6 +36,9 @@ distance = goal_distance
 speed = 0.0
 rotation = 0.0
 
+previous_speed = 0.0
+previous_rotation = 0.0
+
 distance_set = 0
 
 def nothing(x):
@@ -214,6 +217,26 @@ class Tracker:
 
         print("speed = {}\trotation = {}\taverage distance = {}".format(speed, rotation, average_distance))
         print(goal_distance)
+
+        global previous_speed
+        global previous_rotation
+
+        acceleration_limit = 0.02
+        rotation_limit = 0.02
+
+        if speed > previous_speed + acceleration_limit:
+            speed = previous_speed + acceleration_limit
+            previous_speed = speed
+        elif speed < previous_speed - acceleration_limit:
+            speed = previous_speed - acceleration_limit
+            previous_speed = speed
+
+        if rotation > previous_rotation + rotation_limit:
+            rotation = previous_rotation + rotation_limit
+            previous_rotation = rotation
+        elif rotation < previous_rotation - rotation_limit:
+            rotation = previous_rotation - rotation_limit
+            previous_rotation = rotation
 
          # move forward
         self.motion.linear.x = speed
