@@ -10,15 +10,15 @@ import sys
 from geometry_msgs.msg import Twist
 
 
-kernel_size = 5
+kernel_size = 3
 low_threshold = 80
 high_threshold = 120
 # define range of blue color in HSV
-lower_color = np.array([100, 150, 75])
-high_color = np.array([155, 255, 255])
+lower_color = np.array([100, 100, 75])
+high_color = np.array([120, 255, 255])
 
 # Used to erode image
-kernel = np.ones((10, 10), np.uint8)
+kernel = np.ones((7, 7), np.uint8)
 
 # Trail behind object
 pts = []
@@ -36,10 +36,15 @@ distance = goal_distance
 speed = 0.0
 rotation = 0.0
 
+def nothing(x):
+    pass
+
 class Tracker:
     def __init__(self):
         self.bridge = cv_bridge.CvBridge()
         cv2.namedWindow("input", 1)
+        cv2.createTrackbar('param1', 'input', 10, 300, nothing)
+        cv2.createTrackbar('param2', 'input', 15, 300, nothing)
         cv2.namedWindow("processed", 1)
         self.image_sb = rospy.Subscriber('/usb_cam/image_raw', Image, self.image_callback)
 
@@ -53,7 +58,6 @@ class Tracker:
         while not rospy.is_shutdown():
             # publish Twist
             pub.publish(self.motion)
-
             rate.sleep()
 
     def slow_to_stop(self):
@@ -67,25 +71,13 @@ class Tracker:
         global rotation
 
         relative_x = 0.5
-        average_x = average_x * 0.7 + relative_x * 0.3
+        average_x = average_x * 0.8 + relative_x * 0.2
         distance = goal_distance
-        average_distance = average_distance * 0.7 + distance * 0.3
+        average_distance = average_distance * 0.9 + distance * 0.1
         speed = (average_distance - goal_distance)
         rotation = (0.5 - average_x) * 3.0
 
     def image_callback(self, msg):
-        img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        height, width, channels = img.shape
-        proc = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        proc = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, lower_color, high_color)
-        proc = cv2.bitwise_and(proc, proc, mask = mask)
-        proc = cv2.erode(proc, kernel, 10)
-        proc = cv2.dilate(proc, kernel, 10)
-        edge = cv2.Canny(proc, low_threshold, high_threshold)
-        contours = cv2.findContours(edge.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-
         global relative_x
         global distance
         global speed
@@ -94,107 +86,126 @@ class Tracker:
         speed = 0.0
         rotation = 0.0
 
-        if len(contours) > 0:
-            biggest_shape = None
-            largest_area = 250.0
-            for contour in contours:
-                area = cv2.contourArea(contour)
-                if area > largest_area:
-                    largest_area = area
-                    biggest_shape = contour
+        img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
-            if biggest_shape is None:
-                self.slow_to_stop()
+        val1 = cv2.getTrackbarPos('param1', 'input')
+        val2 = cv2.getTrackbarPos('param2', 'input')
+
+        height, width, channels = img.shape
+        proc = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        mask = cv2.inRange(hsv, lower_color, high_color)
+        proc = cv2.bitwise_and(proc, proc, mask = mask)
+        proc = cv2.erode(proc, kernel, 25)
+        proc = cv2.GaussianBlur(proc, (kernel_size, kernel_size), 1)
+        #proc = cv2.dilate(proc, kernel, 1)
+        edge = cv2.Canny(proc, low_threshold, high_threshold)
+
+        cv2.imshow('edge', edge)
+
+        circles = cv2.HoughCircles(edge, cv2.cv.CV_HOUGH_GRADIENT, 1, 100, param1 = val1, param2 = val2, minRadius = 10, maxRadius = 100)
+
+        output = img.copy()
+
+        if circles is not None:
+            print(len(circles[0]))
+            circles = np.uint16(np.around(circles))
+            biggest_circle = 0
+            largest_radius = 0
+            for i in circles[0,:]:
+                if i[2] > largest_radius:
+                    largest_radius = i[2]
+                    biggest_circle = i
+                cv2.circle(output,(i[0], i[1]), i[2], (0, 255, 0), 2)
+            cv2.imshow('circles', output)
+
+            # compute the center of the contour
+            center_x = int(i[0])
+            center_y = int(i[1])
+            # draw the contour and center of the shape on the image
+            center = (int(center_x), int(center_y))
+            radius = int(i[2])
+
+            global average_x
+            global average_distance
+
+            distance = 36.0 / radius
+
+            relative_x = float(center_x) / width
+            average_x = average_x * 0.8 + relative_x * 0.2
+
+            average_distance = average_distance * 0.8 + distance * 0.2
+
+            pts.append((int(average_x * width), center_y))
+            if len(pts) > 20:
+                pts.pop(0)
+
+            global inside_box
+            global distance_box
+
+            if inside_box:
+                if average_x > 0.6 or average_x < 0.4:
+                    inside_box = False
+                    rotation = (0.5 - average_x) * 3.0
+                else:
+                    rotation = 0.0
             else:
-                # compute the center of the contour
-                M = cv2.moments(biggest_shape)
-                center_x = int(M["m10"] / M["m00"])
-                center_y = int(M["m01"] / M["m00"])
-                # draw the contour and center of the shape on the image
-                (x, y), radius = cv2.minEnclosingCircle(biggest_shape)
-                center = (int(x), int(y))
-                radius = int(radius)
-
-                global average_x
-                global average_distance
-
-                distance = 36.0 / radius
-
-                relative_x = float(center_x) / width
-                average_x = average_x * 0.7 + relative_x * 0.3
-
-                average_distance = average_distance * 0.7 + distance * 0.3
-
-                pts.append((int(average_x * width), center_y))
-                if len(pts) > 20:
-                    pts.pop(0)
-
-                global inside_box
-                global distance_box
-
-                if inside_box:
-                    if average_x > 0.6 or average_x < 0.4:
-                        inside_box = False
-                        rotation = (0.5 - average_x) * 3.0
-                    else:
-                        rotation = 0.0
+                if average_x < 0.55 and average_x > 0.45:
+                    inside_box = True
+                    rotation = 0.0
                 else:
-                    if average_x < 0.55 and average_x > 0.45:
-                        inside_box = True
-                        rotation = 0.0
-                    else:
-                        rotation = (0.5 - average_x) * 3.0
+                    rotation = (0.5 - average_x) * 3.0
 
-                if distance_box:
-                    if average_distance > goal_distance + 0.2 or average_distance < goal_distance - 0.2:
-                        distance_box = False
-                        speed = (average_distance - goal_distance) * 0.5
-                    else:
-                        speed = 0.0
+            if distance_box:
+                if average_distance > goal_distance + 0.2 or average_distance < goal_distance - 0.2:
+                    distance_box = False
+                    speed = (average_distance - goal_distance) * 0.5
                 else:
-                    if average_distance < goal_distance + 0.1 and average_distance > goal_distance - 0.1:
-                        distance_box = True
-                        speed = 0.0
-                    else:
-                        speed = (average_distance - goal_distance) * 0.5
-
-                if speed > 0.75:
-                    speed = 0.75
-                elif speed < -0.75:
-                    speed = -0.75
-
-                if rotation > 0.75:
-                    rotation = 0.75
-                elif rotation < -0.75:
-                    rotation = -0.75
-
-                if inside_box:
-                    cv2.rectangle(proc, (int(width * 0.6), 0), (int(width * 0.4), height), (0, 255, 0), 3)
+                    speed = 0.0
+            else:
+                if average_distance < goal_distance + 0.1 and average_distance > goal_distance - 0.1:
+                    distance_box = True
+                    speed = 0.0
                 else:
-                    cv2.rectangle(proc, (int(width * 0.55), 0), (int(width * 0.45), height), (0, 0, 255), 3)
+                    speed = (average_distance - goal_distance) * 0.5
 
-                # loop over the set of tracked points
-                for i in xrange(1, len(pts)):
-                    # if either of the tracked points are None, ignore them
-                    if pts[i - 1] is None or pts[i] is None:
-                        continue
+            if speed > 0.75:
+                speed = 0.75
+            elif speed < -0.75:
+                speed = -0.75
 
-                    # otherwise, compute the thickness of the line and
-                    # draw the connecting lines
-                    thickness = int(np.sqrt(float(i + 1) / 1.0) * 2.5)
-                    cv2.line(proc, pts[i - 1], pts[i], (0, 0, 255), thickness)
+            if rotation > 0.75:
+                rotation = 0.75
+            elif rotation < -0.75:
+                rotation = -0.75
 
-                cv2.circle(proc, center, radius, (0, 255, 0), 2)
-                cv2.circle(proc, (center_x, center_y), 7, (255, 255, 255), -1)
-                cv2.circle(proc, (int(average_x * width), center_y), 7, (0, 255, 0), -1)
-                cv2.putText(proc, "center", (center_x - 20, center_y - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            if inside_box:
+                cv2.rectangle(proc, (int(width * 0.6), 0), (int(width * 0.4), height), (0, 255, 0), 3)
+            else:
+                cv2.rectangle(proc, (int(width * 0.55), 0), (int(width * 0.45), height), (0, 0, 255), 3)
+
+            # loop over the set of tracked points
+            for i in xrange(1, len(pts)):
+                # if either of the tracked points are None, ignore them
+                if pts[i - 1] is None or pts[i] is None:
+                    continue
+
+                # otherwise, compute the thickness of the line and
+                # draw the connecting lines
+                thickness = int(np.sqrt(float(i + 1) / 1.0) * 2.5)
+                cv2.line(proc, pts[i - 1], pts[i], (0, 0, 255), thickness)
+
+            cv2.circle(proc, center, radius, (0, 255, 0), 2)
+            cv2.circle(proc, (center_x, center_y), 7, (255, 255, 255), -1)
+            cv2.circle(proc, (int(average_x * width), center_y), 7, (0, 255, 0), -1)
+            cv2.putText(proc, "center", (center_x - 20, center_y - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
         else:
             self.slow_to_stop()
 
         print("speed = {}\trotation = {}\taverage distance = {}".format(speed, rotation, average_distance))
 
          # move forward
-        self.motion.linear.x  = speed
+        self.motion.linear.x = speed
         self.motion.angular.z = rotation
 
         cv2.imshow("input", img)
