@@ -30,5 +30,14 @@ Now ssh into the jackal and follow the remaining commands
 3. `source devel/setup.bash`
 4. `roslaunch obj_track control_start.launch`  
 
-Once you run the roslaunch command you should be seeing output as shown below.
-Markup : ![picture alt](https://lh3.googleusercontent.com/-bl1HROZ1L7g/WNMOGujefnI/AAAAAAAAACs/JWicm1txaCEjbuFuG-QxsaTVNEdKvX5_ACL0B/h987/proj6_fortnight00.png)
+Once you run the roslaunch command, the output should be as shown below.
+![picture alt](https://lh3.googleusercontent.com/-bl1HROZ1L7g/WNMOGujefnI/AAAAAAAAACs/JWicm1txaCEjbuFuG-QxsaTVNEdKvX5_ACL0B/h987/proj6_fortnight00.png)
+
+At this point, moving the object in front of the camera should result in robot tracking the object.
+
+## Points to note:
+
+1. The choosen object's color should be similar to the one shown in the image. Otherwise the HSV of the respective object should be found and altered in the [track.py](https://github.com/sManohar201/curly-fortnight/blob/master/catkin_ws/src/obj_track/scripts/track.py) program, on lines 19 and 20.  
+`lower_color = np.array([75, 25, 50])  
+high_color = np.array([100, 255, 255])`  
+2. If the object is brought too close to the camera, the tracking function might not work. It is advisable to keep the object at least 100cm away for the function to work properly. 
