@@ -18,17 +18,20 @@ Objective for this project.
 * Sabari Manohar (Team Lead)  
 
 ## For development execute the following commands
+ssh into the jackal and follow these commands
+1. Copy the repository into jackal.
+      `git clone git@github.com:sManohar201/curly-fortnight.git`
+2. `cd curly-fortnight/catkin_ws && catkin_make`
+3. `source devel/setup.bash`
+4. `roslaunch obj_track start_cam.launch`  
+
+Now from the local repository follow the remaining commands
 1. Clone the repository to a desired location  
       `git clone git@github.com:sManohar201/curly-fortnight.git`
 2. `cd curly-fortnight/catkin_ws && catkin_make` 
 3. `source devel/setup.bash`
-4. `source ~/remote-jackal#.sh`
-
-Now ssh into the jackal and follow the remaining commands
-1. Copy the repository into jackal.
-2. `cd curly-fortnight/catkin_ws`
-3. `source devel/setup.bash`
-4. `roslaunch obj_track control_start.launch`  
+4. `source ~/remote-jackal.sh jackal5`
+5. `roslaunch obj_track control_start.launch`
 
 Once you run the roslaunch command, the output should be as shown below.
 ![picture alt](https://lh3.googleusercontent.com/-bl1HROZ1L7g/WNMOGujefnI/AAAAAAAAACs/JWicm1txaCEjbuFuG-QxsaTVNEdKvX5_ACL0B/h987/proj6_fortnight00.png)
