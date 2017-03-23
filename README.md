@@ -44,3 +44,7 @@ At this point, moving the object in front of the camera should result in robot t
 `lower_color = np.array([75, 25, 50])  
 high_color = np.array([100, 255, 255])`  
 2. If the object is brought too close to the camera, the tracking function might not work. It is advisable to keep the object at least 100cm away for the function to work properly. 
+
+## Unfinished Face Tracking:
+
+Unfinished python script for face tracking located in pdscraml branch. This script uses Pre-learned classifier xml files for detecting faces in a video.
